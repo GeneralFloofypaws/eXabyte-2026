@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Meowp</title>
+    <style>
+      body { margin: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+    <script>
+      
+const scene = new THREE.Scene();
+
+scene.fog = new THREE.FogExp2( 0x000000, 0.005);
+      
+const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 2000);
+camera.position.z = 5;
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const starCount = 20000;
+const positions = new Float32Array(starCount * 3);
+
+const targets = [];
+
+const latSteps = 80;
+const lonSteps = 80;
+
+for (let i = 0; i < latSteps; i++) {
+  for (let j = 0; j < lonSteps; j++) {
+
+    const u = (i + Math.random()) / latSteps; // shoja
+    const v = (j + Math.random()) / lonSteps; // pashapashi
+
+    const theta = u * Math.PI * 0.5;   
+    const phi   = v * Math.PI * 2;
+
+    const x = Math.sin(theta) * Math.cos(phi);
+    const y = Math.sin(theta) * Math.sin(phi);
+    const z = -Math.cos(theta); 
+
+    targets.push(new THREE.Vector3(x, y, z));
+  }
+}
+
+const directions = [];
+
+for (let i = 0; i < starCount; i++) {
+
+  const t = targets[Math.floor(Math.random() * targets.length)];
+  directions.push(t.clone());
+
+  const distance = Math.random() * 1000 + 200;
+
+  positions[i * 3]     = t.x * distance;
+  positions[i * 3 + 1] = t.y * distance;
+  positions[i * 3 + 2] = t.z * distance;
+}
+
+const starGeometry = new THREE.BufferGeometry();
+starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+const texture = new THREE.TextureLoader().load('./star_option_3.png');
+
+const exa_pal = [
+  new THREE.Color('#C39A22'),
+  new THREE.Color('#FFD700'),
+  new THREE.Color('#FDDC5C'),
+  new THREE.Color('#FFFFFF'),
+  new THREE.Color('#FFFFF0'),
+  new THREE.Color('#F5F5DC')
+];
+
+const colors = new Float32Array(starCount * 3);
+
+for (let i = 0; i < starCount; i++) {
+  const c = exa_pal[Math.floor(Math.random() * exa_pal.length)];
+
+  colors[i * 3]     = c.r;
+  colors[i * 3 + 1] = c.g;
+  colors[i * 3 + 2] = c.b;
+}
+
+starGeometry.setAttribute(
+  'color',
+  new THREE.BufferAttribute(colors, 3)
+);
+
+const starMaterial = new THREE.PointsMaterial({
+  map: texture,
+  transparent: true,
+  alphaTest: 0.01, 
+  depthWrite: false,   
+  size: 0.35,
+  vertexColors: true,
+  fog: true
+});
+
+const stars = new THREE.Points(starGeometry, starMaterial);
+scene.add(stars);
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  
+  const positions = stars.geometry.attributes.position.array;
+
+  const speed = 2;      
+
+  for (let i = 0; i < positions.length; i += 3) {
+
+    positions[i + 2] += speed;
+
+    if (positions[i + 2] > camera.position.z) {
+
+      const starIndex = (i / 3) | 0;
+      const d = directions[starIndex];
+
+      const distance = 1200;
+
+      positions[i]     = d.x * distance;
+      positions[i + 1] = d.y * distance;
+      positions[i + 2] = d.z * distance;
+    }
+  }
+
+  stars.geometry.attributes.position.needsUpdate = true;
+  renderer.render(scene, camera);
+}
+
+animate();
+
+</script>
+  </body>
+</html>
