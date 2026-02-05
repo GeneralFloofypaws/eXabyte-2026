@@ -48,10 +48,10 @@ def main():
     # We build out everything to the dist directory
     PROD = os.path.join(ROOT_DIR, 'dist')
 
-    shutil.rmtree(PROD)
-    os.makedirs(PROD)
-    shutil.copytree(ASSETS_DIR, os.path.join(PROD, 'assets'))
-    shutil.copytree(STATIC_DIR, os.path.join(PROD, 'static'))
+    shutil.rmtree(PROD, ignore_errors=True)
+    os.makedirs(PROD, exist_ok=True)
+    shutil.copytree(ASSETS_DIR, os.path.join(PROD, 'assets'), dirs_exist_ok=True)
+    shutil.copytree(STATIC_DIR, os.path.join(PROD, 'static'), dirs_exist_ok=True)
 
     files = list(k for k in os.listdir(TEMPLATES_DIR) if os.path.isfile(os.path.join(TEMPLATES_DIR, k)))
 
