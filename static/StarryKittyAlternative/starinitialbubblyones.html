@@ -45,7 +45,8 @@ let logoExitVelocity = 0;
 const LOGO_EXIT_MAX_SPEED = 1.8;
 
 
-const starCount = 60000;
+const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+const starCount = isMobile ? 18000 : 60000;
 const positionsArr = new Float32Array(starCount * 2 * 3);
 
 //  Vector3[] replacement with array kaaron i'm pretty sure eibar karor phone melt hoye jaabe atp
