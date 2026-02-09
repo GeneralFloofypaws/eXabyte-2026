@@ -31,9 +31,10 @@
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
       });
-
+      
       const aspect = window.innerWidth / window.innerHeight;
-      const radiusScaleAsPerWindow = aspect < 1 ? aspect * 1.4 : 1.0;
+      const minViewportRatio = Math.min(window.innerWidth, window.innerHeight) / Math.max(window.innerWidth, window.innerHeight);
+      const radiusScaleAsPerWindow = minViewportRatio;
       const R = 4 * radiusScaleAsPerWindow;     // dis be radius of cylinder 
       const K = 1200;  
       const lambda = 0.4; //koto ta berobe / tunnel korbe 
@@ -52,11 +53,12 @@ let logoExitVelocity = 0;
 
 const LOGO_EXIT_MAX_SPEED = 1.8;
 
+
 const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 const starCount = isMobile ? 18000 : 60000;
+const positionsArr = new Float32Array(starCount * 2 * 3);
 
-const positionsArr = new Float32Array(isMobile ? starCount * 3 : starCount * 2 * 3);
-
+//  Vector3[] replacement with array kaaron i'm pretty sure eibar karor phone melt hoye jaabe atp
 const directions = new Float32Array(starCount * 3);
 
 for (let i = 0; i < starCount; i++) {
@@ -67,25 +69,18 @@ for (let i = 0; i < starCount; i++) {
   const x = R * Math.cos(theta);
   const y = R * Math.sin(theta);
 
-  if (isMobile) {
+  const base = i * 6;
 
-    const pi = i * 3;
-    positionsArr[pi]     = x;
-    positionsArr[pi + 1] = y;
-    positionsArr[pi + 2] = z;
 
-  } else {
-
-    const base = i * 6;
     positionsArr[base]     = x;
     positionsArr[base + 1] = y;
     positionsArr[base + 2] = z;
+
     positionsArr[base + 3] = x;
     positionsArr[base + 4] = y;
     positionsArr[base + 5] = z;
 
-  }
-
+  
   const rx = Math.cos(theta) * lambda;
   const ry = Math.sin(theta) * lambda;
   const rz = 1.0;
@@ -101,6 +96,10 @@ for (let i = 0; i < starCount; i++) {
 const starGeometry = new THREE.BufferGeometry();
 starGeometry.setAttribute('position', new THREE.BufferAttribute(positionsArr, 3));
 
+const loadingManager = new THREE.LoadingManager();
+
+const texture = new THREE.TextureLoader(loadingManager).load('./star_option_3.png');
+
 const exa_pal = [
   new THREE.Color('#C39A22'),
   new THREE.Color('#FFD700'),
@@ -113,48 +112,39 @@ const exa_pal = [
   new THREE.Color('#27292B')
 ];
 
-const colors = new Float32Array(starCount * 3);
+const colors = new Float32Array(starCount * 2 * 3);
 
 for (let i = 0; i < starCount; i++) {
   const c = exa_pal[Math.floor(Math.random() * exa_pal.length)];
-  colors[i * 3]     = c.r;
-  colors[i * 3 + 1] = c.g;
-  colors[i * 3 + 2] = c.b;
+
+  const base = i * 6;
+
+  colors[base]     = c.r;
+  colors[base + 1] = c.g;
+  colors[base + 2] = c.b;
+
+  colors[base + 3] = c.r;
+  colors[base + 4] = c.g;
+  colors[base + 5] = c.b;
 }
 
-starGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+starGeometry.setAttribute(
+  'color',
+  new THREE.BufferAttribute(colors, 3)
+);
 
-let stars;
+const starMaterial = new THREE.LineBasicMaterial({
+  transparent: true,
+  opacity: 0.65,
+  vertexColors: true,
+  linewidth: 1,
+  depthWrite: false
+});
 
-if (isMobile) {
-
-  const starMaterial = new THREE.PointsMaterial({
-    size: 2.2,
-    transparent: true,
-    opacity: 0.7,
-    vertexColors: true,
-    depthWrite: false
-  });
-
-  stars = new THREE.Points(starGeometry, starMaterial);
-
-} else {
-
-  const starMaterial = new THREE.LineBasicMaterial({
-    transparent: true,
-    opacity: 0.5,
-    vertexColors: true,
-    linewidth: 1,
-    depthWrite: false
-  });
-
-  stars = new THREE.LineSegments(starGeometry, starMaterial);
-
-}
-
+const stars = new THREE.LineSegments(starGeometry, starMaterial);
 scene.add(stars);
 
-const logoTexture = new THREE.TextureLoader().load('./logo.png');
+const logoTexture = new THREE.TextureLoader(loadingManager).load('./logo.png');
 
 const vertexShaderSrc = `
   varying vec2 vUv;
@@ -210,63 +200,120 @@ const logo = new THREE.Mesh(
 );
 
 logo.position.z = -2;
+logo.visible = true;
 logo.scale.set(0.0001, 0.0001, 1);
+
 scene.add(logo);
 
-const positions = starGeometry.attributes.position.array;
+let logoSettled = false;
+let glitchCooldown = 0;
+
+const positions = stars.geometry.attributes.position.array;
 
 const speedNormal = 3.2;
 const speedExit = 1.6;
 const spawnZ = -K;
 
-function animate() {
+      function animate() { 
+        
+        requestAnimationFrame(animate);
 
-  requestAnimationFrame(animate);
+    tunnel_kotdur = Math.min(1, tunnel_kotdur + 0.004);
 
-  const speed = logoExiting ? speedExit : speedNormal;
+    const t = Math.max(0, tunnel_kotdur - 0.25) / 0.75;
+    const eased = Math.pow(t, 3);
 
-  for (let i = 0; i < starCount; i++) {
+    const maxLogoScale = 1.6 * minViewportRatio;
+    const logoScale = THREE.MathUtils.lerp(0.0001, maxLogoScale, eased);
+    logo.scale.set(logoScale, logoScale, 1);
 
-    const di = i * 3;
-
-    if (isMobile) {
-
-      const pi = i * 3;
-      positions[pi]     += directions[di]     * speed;
-      positions[pi + 1] += directions[di + 1] * speed;
-      positions[pi + 2] += directions[di + 2] * speed;
-
-      if (positions[pi + 2] > camera.position.z) {
-        positions[pi + 2] = spawnZ;
-      }
-
-    } else {
-
-      const base = i * 6;
-
-      positions[base]     += directions[di]     * speed;
-      positions[base + 1] += directions[di + 1] * speed;
-      positions[base + 2] += directions[di + 2] * speed;
-
-      const streakLength = speed * 16.0;
-
-      positions[base + 3] = positions[base]     - directions[di]     * streakLength;
-      positions[base + 4] = positions[base + 1] - directions[di + 1] * streakLength;
-      positions[base + 5] = positions[base + 2] - directions[di + 2] * streakLength;
-
-      if (positions[base + 2] > camera.position.z) {
-        positions[base + 2] = spawnZ;
-        positions[base + 5] = spawnZ;
-      }
-    }
+    if (logoScale > maxLogoScale * 0.97 && !logoSettled) {
+    logoSettled = true;
+    glitchPulsesLeft = 3;
+    glitchTimer = 0;
   }
 
-  starGeometry.attributes.position.needsUpdate = true;
+  if (logoSettled && glitchPulsesLeft > 0) {
 
-  renderer.render(scene, camera);
+  glitchTimer += 0.016;
+
+  if (!glitchActive && glitchTimer > 0.35) {
+    glitchActive = true;
+    glitchTimer = 0;
+  }
+
+  if (glitchActive) {
+    logoMaterial.uniforms.uGlitch.value = 1.0;
+    logoMaterial.uniforms.uScanline.value = 1.0;
+
+    if (glitchTimer > 0.12) {
+      glitchActive = false;
+      glitchTimer = 0;
+      glitchPulsesLeft--;
+
+      logoMaterial.uniforms.uGlitch.value = 0.0;
+      logoMaterial.uniforms.uScanline.value = 0.0;
+    }
+  }
 }
 
-animate();
+  if (logoSettled && glitchPulsesLeft === 0 && !logoExiting) {
+  logoExitTimer += 0.016;
+
+  if (logoExitTimer > 1.0) {
+    logoExiting = true;
+  }
+}
+
+if (logoExiting) {
+
+  logoExitVelocity += 0.02;
+  logoExitVelocity = Math.min(logoExitVelocity, LOGO_EXIT_MAX_SPEED);
+
+  logo.scale.x += 0.05 + logoExitVelocity * 0.08;
+  logo.scale.y += 0.05 + logoExitVelocity * 0.08;
+
+  logo.position.z += logoExitVelocity;
+}
+
+
+
+    const speed = logoExiting ? speedExit : speedNormal;
+
+    for (let i = 0; i < starCount; i++) {
+
+    const base = i * 6;
+    const di = i * 3;
+
+    positions[base]     += directions[di]     * speed;
+    positions[base + 1] += directions[di + 1] * speed;
+    positions[base + 2] += directions[di + 2] * speed;
+
+  
+    const streakLength = speed * (logoExiting ? 26.0 : 16.0);
+
+    positions[base + 3] = positions[base]     - directions[di]     * streakLength;
+    positions[base + 4] = positions[base + 1] - directions[di + 1] * streakLength;
+    positions[base + 5] = positions[base + 2] - directions[di + 2] * streakLength;
+
+  
+    if (positions[base + 2] > camera.position.z) {
+        positions[base + 2] = spawnZ;
+        positions[base + 5] = spawnZ;
+    }
+    }
+
+  	logoMaterial.uniforms.uTime.value += 0.016;
+
+  	stars.geometry.attributes.position.needsUpdate = true;
+
+  renderer.render(scene, camera);
+
+}
+      
+loadingManager.onLoad = () => {
+  animate();
+};
 
     </script>
   </body>
