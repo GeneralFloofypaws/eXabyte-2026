@@ -102,14 +102,20 @@ const exa_pal = [
   new THREE.Color('#27292B')
 ];
 
-const colors = new Float32Array(starCount * 3);
+const colors = new Float32Array(starCount * 2 * 3);
 
 for (let i = 0; i < starCount; i++) {
   const c = exa_pal[Math.floor(Math.random() * exa_pal.length)];
 
-  colors[i * 3]     = c.r;
-  colors[i * 3 + 1] = c.g;
-  colors[i * 3 + 2] = c.b;
+  const base = i * 6;
+
+  colors[base]     = c.r;
+  colors[base + 1] = c.g;
+  colors[base + 2] = c.b;
+
+  colors[base + 3] = c.r;
+  colors[base + 4] = c.g;
+  colors[base + 5] = c.b;
 }
 
 starGeometry.setAttribute(
