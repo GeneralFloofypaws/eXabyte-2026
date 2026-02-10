@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-  <head>
+    <head>
     <meta charset="utf-8">
     <title>Meowp</title>
     <style>
@@ -10,14 +10,15 @@
   <body>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three.meshline@1.3.0/THREE.MeshLine.min.js"></script>
 
     <script>
       
       const scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x160D08, 0.004);
 
+        scene.fog = new THREE.FogExp2( 0x160D08, 0.004);
+      
       const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
+
       
       const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
       renderer.setClearColor(0x160D08, 1);
@@ -25,266 +26,288 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
       document.body.appendChild(renderer.domElement);
 
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-
-      const aspect = window.innerWidth / window.innerHeight;
-      const radiusScaleAsPerWindow = aspect < 1 ? aspect * 1.4 : 1.0;
-      const R = 4 * radiusScaleAsPerWindow;     // dis be radius of cylinder 
+      const R = 4;     // dis be radius of cylinder 
       const K = 1200;  
       const lambda = 0.4; //koto ta berobe / tunnel korbe 
      
-      let tunnel_kotdur = 0;     // 0 → 1 obdhi, just kotdur tunnel ta khulechhe dekhaar jonyo 
-      let logoGoesFwoosh  = false;
+let tunnel_kotdur = 0;     // 0 → 1 obdhi, just kotdur tunnel ta khulechhe dekhaar jonyo 
+let logoGoesFwoosh  = false;
 
-      let glitchPulsesLeft = 3;
-      let glitchTimer = 0;
-      let glitchActive = false;
+let glitchPulsesLeft = 3;
+let glitchTimer = 0;
+let glitchActive = false;
 
-      let logoExitTimer = 0;
-      let logoExiting = false;
+let logoExitTimer = 0;
+let logoExiting = false;
 
-      let logoExitVelocity = 0;
-      const LOGO_EXIT_MAX_SPEED = 1.8;
+let logoExitVelocity = 0;
 
-      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const starCount = isMobile ? 18000 : 60000;
+const LOGO_EXIT_MAX_SPEED = 1.8;
 
-      const positionsArr = new Float32Array(starCount * 2 * 3);
-      const directions = new Float32Array(starCount * 3);
 
-      const exa_pal = [
-        new THREE.Color('#C39A22'),
-        new THREE.Color('#FFD700'),
-        new THREE.Color('#FDDC5C'),
-        new THREE.Color('#FFFFFF'),
-        new THREE.Color('#FFFFF0'),
-        new THREE.Color('#F5F5DC'),
-        new THREE.Color('#000000'),
-        new THREE.Color('#160D08'),
-        new THREE.Color('#27292B')
-      ];
+const starCount = 60000;
+const positionsArr = new Float32Array(starCount * 2 * 3);
 
-      const colorsArr = new Float32Array(starCount * 2 * 3);
-      const baseColors = [];
+//  Vector3[] replacement with array kaaron i'm pretty sure eibar karor phone melt hoye jaabe atp
+const directions = new Float32Array(starCount * 3);
 
-      for (let i = 0; i < starCount; i++) {
+for (let i = 0; i < starCount; i++) {
 
-        const theta = Math.random() * Math.PI * 2;
-        const z = -Math.random() * K;
+  const theta = Math.random() * Math.PI * 2;
+  const z = -Math.random() * K;
 
-        const x = R * Math.cos(theta);
-        const y = R * Math.sin(theta);
+  const x = R * Math.cos(theta);
+  const y = R * Math.sin(theta);
 
-        const base = i * 6;
+  const base = i * 6;
 
-        positionsArr[base]     = x;
-        positionsArr[base + 1] = y;
-        positionsArr[base + 2] = z;
 
-        positionsArr[base + 3] = x;
-        positionsArr[base + 4] = y;
-        positionsArr[base + 5] = z;
+    positionsArr[base]     = x;
+    positionsArr[base + 1] = y;
+    positionsArr[base + 2] = z;
 
-        const rx = Math.cos(theta) * lambda;
-        const ry = Math.sin(theta) * lambda;
-        const rz = 1.0;
-        const len = Math.sqrt(rx*rx + ry*ry + rz*rz);
+    positionsArr[base + 3] = x;
+    positionsArr[base + 4] = y;
+    positionsArr[base + 5] = z;
 
-        const di = i * 3;
-        directions[di]     = rx / len;
-        directions[di + 1] = ry / len;
-        directions[di + 2] = rz / len;
+  
+  const rx = Math.cos(theta) * lambda;
+  const ry = Math.sin(theta) * lambda;
+  const rz = 1.0;
 
-        // save base color for this line
-        const c = exa_pal[Math.floor(Math.random() * exa_pal.length)];
-        baseColors.push(c);
-        colorsArr[base]     = c.r;
-        colorsArr[base + 1] = c.g;
-        colorsArr[base + 2] = c.b;
-        colorsArr[base + 3] = c.r;
-        colorsArr[base + 4] = c.g;
-        colorsArr[base + 5] = c.b;
-      }
+  const len = Math.sqrt(rx*rx + ry*ry + rz*rz);
 
-      // MeshLine setup
-      const meshLine = new MeshLine();
-      meshLine.setPoints(positionsArr);
+  const di = i * 3;
+  directions[di]     = rx / len;
+  directions[di + 1] = ry / len;
+  directions[di + 2] = rz / len;
+}
 
-      const meshLineMaterial = new MeshLineMaterial({
-        lineWidth: 5,  // thickness of streaks
-        color: new THREE.Color(0xffffff),
-        transparent: true,
-        opacity: 0.5,
-        depthWrite: false,
-        sizeAttenuation: true,
-      });
+const starGeometry = new THREE.BufferGeometry();
+starGeometry.setAttribute('position', new THREE.BufferAttribute(positionsArr, 3));
 
-      const stars = new THREE.Mesh(meshLine, meshLineMaterial);
-      scene.add(stars);
+const loadingManager = new THREE.LoadingManager();
 
-      // logo setup
-      const loadingManager = new THREE.LoadingManager();
-      const logoTexture = new THREE.TextureLoader(loadingManager).load('./logo.png');
+const texture = new THREE.TextureLoader(loadingManager).load('./star_option_3.png');
 
-      const vertexShaderSrc = `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `;
+const exa_pal = [
+  new THREE.Color('#C39A22'),
+  new THREE.Color('#FFD700'),
+  new THREE.Color('#FDDC5C'),
+  new THREE.Color('#FFFFFF'),
+  new THREE.Color('#FFFFF0'),
+  new THREE.Color('#F5F5DC'),
+  new THREE.Color('#000000'),
+  new THREE.Color('#160D08'),
+  new THREE.Color('#27292B')
+];
 
-      const fragmentShaderSrc = `
-        uniform sampler2D uTexture;
-        uniform float uTime;
-        uniform float uGlitch;
-        uniform float uScanline;
-        varying vec2 vUv;
+const colors = new Float32Array(starCount * 2 * 3);
 
-        float rand(vec2 co){
-          return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
-        }
+for (let i = 0; i < starCount; i++) {
+  const c = exa_pal[Math.floor(Math.random() * exa_pal.length)];
 
-        void main() {
+  const base = i * 6;
 
-          vec2 uv = vUv;
+  colors[base]     = c.r;
+  colors[base + 1] = c.g;
+  colors[base + 2] = c.b;
 
-          if (uGlitch > 0.5) {
+  colors[base + 3] = c.r;
+  colors[base + 4] = c.g;
+  colors[base + 5] = c.b;
+}
 
-            float line = sin((uv.y + uTime * 3.0) * 120.0) * 0.02 * uScanline;
-            uv.x += line;
+starGeometry.setAttribute(
+  'color',
+  new THREE.BufferAttribute(colors, 3)
+);
 
-            float jitter = (rand(vec2(uTime, uv.y)) - 0.5) * 0.03;
-            uv.x += jitter;
-          }
+const starMaterial = new THREE.LineBasicMaterial({
+  transparent: true,
+  opacity: 0.5,
+  vertexColors: true,
+  fog: true,
+  linewidth: 2,
+  depthWrite: false
+});
 
-          gl_FragColor = texture2D(uTexture, uv);
-        }
-      `;
+const stars = new THREE.LineSegments(starGeometry, starMaterial);
+scene.add(stars);
 
-      const logoMaterial = new THREE.ShaderMaterial({
-        transparent: true,
-        uniforms: {
-          uTime: { value: 0 },
-          uGlitch: { value: 0 },
-          uScanline: { value: 0 },
-          uTexture: { value: logoTexture }
-        },
-        vertexShader: vertexShaderSrc,
-        fragmentShader: fragmentShaderSrc
-      });
+const logoTexture = new THREE.TextureLoader(loadingManager).load('./static/StarryKittyAlternative/logo.png');
 
-      const logo = new THREE.Mesh(
-        new THREE.PlaneGeometry(3, 3),
-        logoMaterial
-      );
+const vertexShaderSrc = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
 
-      logo.position.z = -10; // move logo back so it's visible on all screens
-      logo.visible = true;
-      logo.scale.set(0.0001, 0.0001, 1);
+const fragmentShaderSrc = `
+  uniform sampler2D uTexture;
+  uniform float uTime;
+  uniform float uGlitch;
+  uniform float uScanline;
+  varying vec2 vUv;
 
-      scene.add(logo);
+  float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+  }
 
-      let logoSettled = false;
-      let glitchCooldown = 0;
+  void main() {
 
-      const speedNormal = 3.2;
-      const speedExit = 1.6;
-      const spawnZ = -K;
+    vec2 uv = vUv;
 
-      function animate() {
+    if (uGlitch > 0.5) {
 
+      float line = sin((uv.y + uTime * 3.0) * 120.0) * 0.02 * uScanline;
+      uv.x += line;
+
+      float jitter = (rand(vec2(uTime, uv.y)) - 0.5) * 0.03;
+      uv.x += jitter;
+    }
+
+    gl_FragColor = texture2D(uTexture, uv);
+  }
+`;
+
+const logoMaterial = new THREE.ShaderMaterial({
+  transparent: true,
+  uniforms: {
+    uTime: { value: 0 },
+    uGlitch: { value: 0 },
+    uScanline: { value: 0 },
+    uTexture: { value: logoTexture }
+  },
+  vertexShader: vertexShaderSrc,
+  fragmentShader: fragmentShaderSrc
+});
+
+const logo = new THREE.Mesh(
+  new THREE.PlaneGeometry(3, 3),
+  logoMaterial
+);
+
+logo.position.z = -2;
+logo.visible = true;
+logo.scale.set(0.0001, 0.0001, 1);
+
+scene.add(logo);
+
+let logoSettled = false;
+let glitchCooldown = 0;
+
+const positions = stars.geometry.attributes.position.array;
+
+const speedNormal = 3.2;
+const speedExit = 1.6;
+const spawnZ = -K;
+
+      function animate() { 
+        
         requestAnimationFrame(animate);
 
-        tunnel_kotdur = Math.min(1, tunnel_kotdur + 0.004);
-        const t = Math.max(0, tunnel_kotdur - 0.25) / 0.75;
-        const eased = Math.pow(t, 3);
+    tunnel_kotdur = Math.min(1, tunnel_kotdur + 0.004);
 
-        // logo scaling per device
-        const maxLogoScale = Math.min(aspect < 1 ? 1.2 : 1.6, 1.6);
-        const logoScale = THREE.MathUtils.lerp(0.0001, maxLogoScale, eased);
-        logo.scale.set(logoScale, logoScale, 1);
+    const t = Math.max(0, tunnel_kotdur - 0.25) / 0.75;
+    const eased = Math.pow(t, 3);
 
-        if (logoScale > 1.55 && !logoSettled) {
-          logoSettled = true;
-          glitchPulsesLeft = 3;
-          glitchTimer = 0;
-        }
+    const logoScale = THREE.MathUtils.lerp(0.0001, 1.6, eased);
+    logo.scale.set(logoScale, logoScale, 1);
 
-        if (logoSettled && glitchPulsesLeft > 0) {
-          glitchTimer += 0.016;
+    if (logoScale > 1.55 && !logoSettled) {
+    logoSettled = true;
+    glitchPulsesLeft = 3;
+    glitchTimer = 0;
+  }
 
-          if (!glitchActive && glitchTimer > 0.35) {
-            glitchActive = true;
-            glitchTimer = 0;
-          }
+  if (logoSettled && glitchPulsesLeft > 0) {
 
-          if (glitchActive) {
-            logoMaterial.uniforms.uGlitch.value = 1.0;
-            logoMaterial.uniforms.uScanline.value = 1.0;
+  glitchTimer += 0.016;
 
-            if (glitchTimer > 0.12) {
-              glitchActive = false;
-              glitchTimer = 0;
-              glitchPulsesLeft--;
+  if (!glitchActive && glitchTimer > 0.35) {
+    glitchActive = true;
+    glitchTimer = 0;
+  }
 
-              logoMaterial.uniforms.uGlitch.value = 0.0;
-              logoMaterial.uniforms.uScanline.value = 0.0;
-            }
-          }
-        }
+  if (glitchActive) {
+    logoMaterial.uniforms.uGlitch.value = 1.0;
+    logoMaterial.uniforms.uScanline.value = 1.0;
 
-        if (logoSettled && glitchPulsesLeft === 0 && !logoExiting) {
-          logoExitTimer += 0.016;
-          if (logoExitTimer > 1.0) logoExiting = true;
-        }
+    if (glitchTimer > 0.12) {
+      glitchActive = false;
+      glitchTimer = 0;
+      glitchPulsesLeft--;
 
-        if (logoExiting) {
-          logoExitVelocity += 0.02;
-          logoExitVelocity = Math.min(logoExitVelocity, LOGO_EXIT_MAX_SPEED);
+      logoMaterial.uniforms.uGlitch.value = 0.0;
+      logoMaterial.uniforms.uScanline.value = 0.0;
+    }
+  }
+}
 
-          logo.scale.x += 0.05 + logoExitVelocity * 0.08;
-          logo.scale.y += 0.05 + logoExitVelocity * 0.08;
+  if (logoSettled && glitchPulsesLeft === 0 && !logoExiting) {
+  logoExitTimer += 0.016;
 
-          logo.position.z += logoExitVelocity;
-        }
+  if (logoExitTimer > 1.0) {
+    logoExiting = true;
+  }
+}
 
-        const speed = logoExiting ? speedExit : speedNormal;
+if (logoExiting) {
 
-        for (let i = 0; i < starCount; i++) {
-          const base = i * 6;
-          const di = i * 3;
+  logoExitVelocity += 0.02;
+  logoExitVelocity = Math.min(logoExitVelocity, LOGO_EXIT_MAX_SPEED);
 
-          positionsArr[base]     += directions[di]     * speed;
-          positionsArr[base + 1] += directions[di + 1] * speed;
-          positionsArr[base + 2] += directions[di + 2] * speed;
+  logo.scale.x += 0.05 + logoExitVelocity * 0.08;
+  logo.scale.y += 0.05 + logoExitVelocity * 0.08;
 
-          const streakLength = speed * (logoExiting ? 26.0 : 16.0);
+  logo.position.z += logoExitVelocity;
+}
 
-          positionsArr[base + 3] = positionsArr[base]     - directions[di]     * streakLength;
-          positionsArr[base + 4] = positionsArr[base + 1] - directions[di + 1] * streakLength;
-          positionsArr[base + 5] = positionsArr[base + 2] - directions[di + 2] * streakLength;
 
-          if (positionsArr[base + 2] > camera.position.z) {
-            positionsArr[base + 2] = spawnZ;
-            positionsArr[base + 5] = spawnZ;
-          }
-        }
 
-        meshLine.setPoints(positionsArr); // update meshLine
-        logoMaterial.uniforms.uTime.value += 0.016;
+    const speed = logoExiting ? speedExit : speedNormal;
 
-        renderer.render(scene, camera);
-      }
+    for (let i = 0; i < starCount; i++) {
 
-      loadingManager.onLoad = () => {
-        animate();
-      };
+    const base = i * 6;
+    const di = i * 3;
+
+    // move shaamne of the line 
+    positions[base]     += directions[di]     * speed;
+    positions[base + 1] += directions[di + 1] * speed;
+    positions[base + 2] += directions[di + 2] * speed;
+
+  
+    const streakLength = speed * (logoExiting ? 26.0 : 16.0);
+
+    // move pechhone of the line ... the tail aarki
+    positions[base + 3] = positions[base]     - directions[di]     * streakLength;
+    positions[base + 4] = positions[base + 1] - directions[di + 1] * streakLength;
+    positions[base + 5] = positions[base + 2] - directions[di + 2] * streakLength;
+
+  
+    if (positions[base + 2] > camera.position.z) {
+        positions[base + 2] = spawnZ;
+        positions[base + 5] = spawnZ;
+    }
+    }
+
+  	logoMaterial.uniforms.uTime.value += 0.016;
+
+  	stars.geometry.attributes.position.needsUpdate = true;
+
+  renderer.render(scene, camera);
+
+}
+      
+loadingManager.onLoad = () => {
+  animate();
+};
 
     </script>
   </body>
 </html>
+
