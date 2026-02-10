@@ -157,6 +157,7 @@
         uniform float uTime;
         uniform float uGlitch;
         uniform float uScanline;
+        uniform float uOpacity;
         varying vec2 vUv;
 
         float rand(vec2 co){
@@ -176,7 +177,9 @@
             uv.x += jitter;
           }
 
-          gl_FragColor = texture2D(uTexture, uv);
+          vec4 col = texture2D(uTexture, uv);
+          col.a *= uOpacity;
+          gl_FragColor = col;
         }
       `;
 
@@ -186,6 +189,7 @@
           uTime: { value: 0 },
           uGlitch: { value: 0 },
           uScanline: { value: 0 },
+          uOpacity: { value: 1.0 },
           uTexture: { value: logoTexture }
         },
         vertexShader: vertexShaderSrc,
@@ -211,7 +215,6 @@
       const speedExit = 1.6;
       const spawnZ = -K;
 
-      // camera-aware visible size helpers
       function getVisibleHeightAtZ(z) {
         const distance = Math.abs(camera.position.z - z);
         const vFOV = THREE.MathUtils.degToRad(camera.fov);
@@ -223,6 +226,7 @@
       }
 
       let lastTime = performance.now();
+      let exitStartZ = null;
 
       function animate(now) { 
         
@@ -286,12 +290,30 @@
 
         if (logoSettled && glitchPulsesLeft === 0 && !logoExiting) {
           logoExitTimer += delta;
-          if (logoExitTimer > 1.0) logoExiting = true;
+          if (logoExitTimer > 1.0) {
+            logoExiting = true;
+            exitStartZ = logo.position.z;
+          }
         }
 
         if (logoExiting) {
-          logoExitVelocity = Math.min(LOGO_EXIT_MAX_SPEED, logoExitVelocity + delta);
+
+          logoExitVelocity = Math.min(
+            LOGO_EXIT_MAX_SPEED,
+            logoExitVelocity + delta
+          );
+
           logo.position.z = Math.min(4, logo.position.z + logoExitVelocity);
+          
+          const exitDistance = Math.abs(exitStartZ - camera.position.z);
+          const currentDistance = Math.abs(logo.position.z - camera.position.z);
+          const fadeT = THREE.MathUtils.clamp(
+            currentDistance / exitDistance,
+            0,
+            1
+          );
+
+          logoMaterial.uniforms.uOpacity.value = 1.0 - fadeT;
         }
 
         const speed = logoExiting ? speedExit : speedNormal;
@@ -338,5 +360,3 @@
     </script>
   </body>
 </html>
-
-
