@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html>
     <head>
@@ -18,19 +20,13 @@
         scene.fog = new THREE.FogExp2( 0x160D08, 0.004);
       
       const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
-    
 
-      function getVisibleHeightAtZ(z, camera) {
-          const distance = Math.abs(camera.position.z - z);
-          const vFOV = THREE.MathUtils.degToRad(camera.fov);
-          return 2 * Math.tan(vFOV / 2) * distance;
-    }      
+      
       const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
       renderer.setClearColor(0x160D08, 1);
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
       document.body.appendChild(renderer.domElement);
-      const clock = new THREE.Clock();  
 
       const R = 4;     // dis be radius of cylinder 
       const K = 1200;  
@@ -51,14 +47,8 @@ let logoExitVelocity = 0;
 const LOGO_EXIT_MAX_SPEED = 1.8;
 
 
-const minDim = Math.min(window.innerWidth, window.innerHeight);
-const dpr = Math.min(window.devicePixelRatio, 2);
-
-const starCount = (minDim * dpr < 900) ? 20000 : 60000;
+const starCount = 60000;
 const positionsArr = new Float32Array(starCount * 2 * 3);
-
-const isMobile = Math.min(window.innerWidth, window.innerHeight) < 768;
-const LOGO_MAX_SCALE = isMobile ? 1.1 : 1.6;
 
 //  Vector3[] replacement with array kaaron i'm pretty sure eibar karor phone melt hoye jaabe atp
 const directions = new Float32Array(starCount * 3);
@@ -221,17 +211,12 @@ const spawnZ = -K;
         
         requestAnimationFrame(animate);
 
-        const dt = clock.getDelta();
-
-    tunnel_kotdur = Math.min(1, tunnel_kotdur + 0.25 * dt);
+    tunnel_kotdur = Math.min(1, tunnel_kotdur + 0.004);
 
     const t = Math.max(0, tunnel_kotdur - 0.25) / 0.75;
     const eased = Math.pow(t, 3);
 
-    const visibleHeight = getVisibleHeightAtZ(logo.position.z, camera);
-    const maxLogoSize = visibleHeight * 0.35;
-
-    const logoScale = THREE.MathUtils.lerp(0.0001, LOGO_MAX_SCALE, eased);
+    const logoScale = THREE.MathUtils.lerp(0.0001, 1.6, eased);
     logo.scale.set(logoScale, logoScale, 1);
 
     if (logoScale > 1.55 && !logoSettled) {
@@ -242,7 +227,7 @@ const spawnZ = -K;
 
   if (logoSettled && glitchPulsesLeft > 0) {
 
-  glitchTimer += dt;
+  glitchTimer += 0.016;
 
   if (!glitchActive && glitchTimer > 0.35) {
     glitchActive = true;
@@ -265,7 +250,7 @@ const spawnZ = -K;
 }
 
   if (logoSettled && glitchPulsesLeft === 0 && !logoExiting) {
-  logoExitTimer += dt;
+  logoExitTimer += 0.016;
 
   if (logoExitTimer > 1.0) {
     logoExiting = true;
@@ -274,20 +259,11 @@ const spawnZ = -K;
 
 if (logoExiting) {
 
-  logoExitVelocity += 1.2 * dt
+  logoExitVelocity += 0.02;
   logoExitVelocity = Math.min(logoExitVelocity, LOGO_EXIT_MAX_SPEED);
 
-  const maxExitScale = LOGO_MAX_SCALE * 1.4;
-
-    logo.scale.x = Math.min(
-  logo.scale.x + 0.05 + logoExitVelocity * 0.08,
-  maxExitScale
-);
-
-logo.scale.y = Math.min(
-  logo.scale.y + 0.05 + logoExitVelocity * 0.08,
-  maxExitScale
-);
+  logo.scale.x += 0.05 + logoExitVelocity * 0.08;
+  logo.scale.y += 0.05 + logoExitVelocity * 0.08;
 
   logo.position.z += logoExitVelocity;
 }
@@ -321,7 +297,7 @@ logo.scale.y = Math.min(
     }
     }
 
-  	logoMaterial.uniforms.uTime.value += dt;
+  	logoMaterial.uniforms.uTime.value += 0.016;
 
   	stars.geometry.attributes.position.needsUpdate = true;
 
