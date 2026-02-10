@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-    <head>
+  <head>
     <meta charset="utf-8">
     <title>Meowp</title>
     <style>
@@ -15,21 +15,29 @@
       
       const scene = new THREE.Scene();
 
-        scene.fog = new THREE.FogExp2( 0x160D08, 0.004);
+      scene.fog = new THREE.FogExp2( 0x160D08, 0.004);
       
-      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1500
+      );
 
-      
-      const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+      const renderer = new THREE.WebGLRenderer({
+        antialias: false,
+        powerPreference: "high-performance"
+      });
+
       renderer.setClearColor(0x160D08, 1);
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25)); // mobile-safe cap
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
       document.body.appendChild(renderer.domElement);
 
       const R = 4;     // dis be radius of cylinder 
       const K = 1200;  
       const lambda = 0.4; //koto ta berobe / tunnel korbe 
-
+     
       let tunnel_kotdur = 0;     // 0 → 1 obdhi, just kotdur tunnel ta khulechhe dekhaar jonyo 
       let logoGoesFwoosh  = false;
 
@@ -44,7 +52,6 @@
 
       const LOGO_EXIT_MAX_SPEED = 1.8;
 
-      // adaptive star count (desktop vs phone)
       const isMobile = /Mobi|Android/i.test(navigator.userAgent);
       const starCount = isMobile ? 18000 : 60000;
 
@@ -117,7 +124,10 @@
         colors[base + 5] = c.b;
       }
 
-      starGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      starGeometry.setAttribute(
+        'color',
+        new THREE.BufferAttribute(colors, 3)
+      );
 
       const starMaterial = new THREE.LineBasicMaterial({
         transparent: true,
@@ -131,7 +141,8 @@
       const stars = new THREE.LineSegments(starGeometry, starMaterial);
       scene.add(stars);
 
-      const logoTexture = new THREE.TextureLoader(loadingManager).load('./static/StarryKittyAlternative/logo.png');
+      const logoTexture = new THREE.TextureLoader(loadingManager)
+        .load('./static/StarryKittyAlternative/logo.png');
 
       const vertexShaderSrc = `
         varying vec2 vUv;
@@ -193,13 +204,23 @@
       scene.add(logo);
 
       let logoSettled = false;
-      let glitchCooldown = 0;
 
       const positions = stars.geometry.attributes.position.array;
 
       const speedNormal = 3.2;
       const speedExit = 1.6;
       const spawnZ = -K;
+
+      // camera-aware visible size helpers
+      function getVisibleHeightAtZ(z) {
+        const distance = Math.abs(camera.position.z - z);
+        const vFOV = THREE.MathUtils.degToRad(camera.fov);
+        return 2 * Math.tan(vFOV / 2) * distance;
+      }
+
+      function getVisibleWidthAtZ(z) {
+        return getVisibleHeightAtZ(z) * camera.aspect;
+      }
 
       let lastTime = performance.now();
 
@@ -215,10 +236,25 @@
         const t = Math.max(0, tunnel_kotdur - 0.25) / 0.75;
         const eased = Math.pow(t, 3);
 
-        const logoScale = THREE.MathUtils.lerp(0.0001, 1.6, eased);
-        logo.scale.setScalar(Math.min(logoScale, 1.6)); // clamp scale
+        const targetScale = THREE.MathUtils.lerp(0.0001, 1.6, eased);
 
-        if (logoScale > 1.55 && !logoSettled) {
+        const visibleHeight = getVisibleHeightAtZ(logo.position.z);
+        const visibleWidth  = getVisibleWidthAtZ(logo.position.z);
+
+        const logoAspect = logoTexture.image.width / logoTexture.image.height;
+
+        const maxScaleFromHeight = (visibleHeight * 0.85) / 3;
+        const maxScaleFromWidth  = (visibleWidth  * 0.85) / (3 * logoAspect);
+
+        const maxAllowedScale = Math.min(
+          maxScaleFromHeight,
+          maxScaleFromWidth
+        );
+
+        const finalScale = Math.min(targetScale, maxAllowedScale);
+        logo.scale.set(finalScale, finalScale, 1);
+
+        if (finalScale >= maxAllowedScale * 0.98 && !logoSettled) {
           logoSettled = true;
           glitchPulsesLeft = 3;
           glitchTimer = 0;
@@ -255,7 +291,7 @@
 
         if (logoExiting) {
           logoExitVelocity = Math.min(LOGO_EXIT_MAX_SPEED, logoExitVelocity + delta);
-          logo.position.z = Math.min(4, logo.position.z + logoExitVelocity); // clamp Z
+          logo.position.z = Math.min(4, logo.position.z + logoExitVelocity);
         }
 
         const speed = logoExiting ? speedExit : speedNormal;
@@ -265,12 +301,14 @@
           const base = i * 6;
           const di = i * 3;
 
+          // move shaamne of the line 
           positions[base]     += directions[di]     * speed;
           positions[base + 1] += directions[di + 1] * speed;
           positions[base + 2] += directions[di + 2] * speed;
 
           const streakLength = speed * (logoExiting ? 26.0 : 16.0);
 
+          // move pechhone of the line ... the tail aarki
           positions[base + 3] = positions[base]     - directions[di]     * streakLength;
           positions[base + 4] = positions[base + 1] - directions[di + 1] * streakLength;
           positions[base + 5] = positions[base + 2] - directions[di + 2] * streakLength;
@@ -282,21 +320,20 @@
         }
 
         logoMaterial.uniforms.uTime.value += delta;
-
         stars.geometry.attributes.position.needsUpdate = true;
 
         renderer.render(scene, camera);
       }
+      
+      loadingManager.onLoad = () => {
+        animate(performance.now());
+      };
 
       window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
       });
-
-      loadingManager.onLoad = () => {
-        animate(performance.now());
-      };
 
     </script>
   </body>
