@@ -57,6 +57,9 @@ const dpr = Math.min(window.devicePixelRatio, 2);
 const starCount = (minDim * dpr < 900) ? 20000 : 60000;
 const positionsArr = new Float32Array(starCount * 2 * 3);
 
+const isMobile = Math.min(window.innerWidth, window.innerHeight) < 768;
+const LOGO_MAX_SCALE = isMobile ? 1.1 : 1.6;
+
 //  Vector3[] replacement with array kaaron i'm pretty sure eibar karor phone melt hoye jaabe atp
 const directions = new Float32Array(starCount * 3);
 
@@ -228,7 +231,7 @@ const spawnZ = -K;
     const visibleHeight = getVisibleHeightAtZ(logo.position.z, camera);
     const maxLogoSize = visibleHeight * 0.35;
 
-    const logoScale = THREE.MathUtils.lerp(0.0001, maxLogoSize, eased);
+    const logoScale = THREE.MathUtils.lerp(0.0001, LOGO_MAX_SCALE, eased);
     logo.scale.set(logoScale, logoScale, 1);
 
     if (logoScale > 1.55 && !logoSettled) {
@@ -274,8 +277,17 @@ if (logoExiting) {
   logoExitVelocity += 1.2 * dt
   logoExitVelocity = Math.min(logoExitVelocity, LOGO_EXIT_MAX_SPEED);
 
-  logo.scale.x += 0.05 + logoExitVelocity * 0.08;
-  logo.scale.y += 0.05 + logoExitVelocity * 0.08;
+  const maxExitScale = LOGO_MAX_SCALE * 1.4;
+
+    logo.scale.x = Math.min(
+  logo.scale.x + 0.05 + logoExitVelocity * 0.08,
+  maxExitScale
+);
+
+logo.scale.y = Math.min(
+  logo.scale.y + 0.05 + logoExitVelocity * 0.08,
+  maxExitScale
+);
 
   logo.position.z += logoExitVelocity;
 }
